@@ -26,6 +26,9 @@ class Fun(commands.Cog):
         user = user or interaction.user
         percentage = random.randint(0, 100)
         color = discord.Color.random()
+
+        if user.name == "tyrell.py":
+            percentage = random.randint(0, 20)  # Tyrell is always very straight
         
         if percentage <= 20:
             remark = "Straight as a ruler! 📏 (يا شارع)"
