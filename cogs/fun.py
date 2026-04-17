@@ -1,3 +1,5 @@
+import random
+
 import discord
 from discord.ext import commands
 from discord import app_commands
@@ -5,10 +7,30 @@ from discord import app_commands
 class Fun(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        
+
+    @app_commands.command(name="ping", description="Check the bot's latency 🏓")
+    async def ping(self, interaction: discord.Interaction):
+        latency_ms = round(self.bot.latency * 1000)
+
+        if latency_ms < 100:
+            emoji = "🟢"
+            remark = "Lightning fast! ⚡"
+        elif latency_ms < 200:
+            emoji = "🟡"
+            remark = "Not bad!"
+        else:
+            emoji = "🔴"
+            remark = "A bit slow... 🐢"
+
+        embed = discord.Embed(
+            title="🏓 Pong!",
+            description=f"{emoji} **{latency_ms}ms**\n-# *{remark}*",
+            color=discord.Color.from_str("#f45142")
+        )
+        await interaction.response.send_message(embed=embed)
+
     @app_commands.command(name="pride", description="Get a random pride flag and its meaning!")
     async def pride(self, interaction: discord.Interaction):
-        import random
         flags = [
             ("🏳️‍🌈 Rainbow", "Represents the diverse LGBTQ+ community (Life, Healing, Sunlight, Nature, Harmony, Spirit)."),
             ("🏳️‍⚧️ Transgender", "Represents the transgender community (Light blue for boys, pink for girls, white for those transitioning or outside the binary)."),
@@ -22,11 +44,11 @@ class Fun(commands.Cog):
 
     @app_commands.command(name="gaydar", description="A playful gaydar to test your friends!")
     async def gaydar(self, interaction: discord.Interaction, user: discord.Member = None):
-        import random
         user = user or interaction.user
         percentage = random.randint(0, 100)
         color = discord.Color.random()
 
+        # TODO: Replace this with Tyrell's actual Discord user ID for reliability
         if user.name == "tyrell.py":
             percentage = random.randint(0, 20)  # Tyrell is always very straight
         

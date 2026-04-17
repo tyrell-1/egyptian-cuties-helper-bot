@@ -5,11 +5,19 @@ import os
 import asyncio
 
 class TicketView(discord.ui.View):
+    _creating_tickets = set()  # Track users with ticket creation in progress
+
     def __init__(self):
         super().__init__(timeout=None)
     
     @discord.ui.button(label="Open Ticket", style=discord.ButtonStyle.secondary, custom_id="open_verification_ticket", emoji="<:1337843137359515752:1494451080636010587>")
     async def open_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
+        # Prevent duplicate tickets from rapid double-clicks
+        if interaction.user.id in self._creating_tickets:
+            await interaction.response.send_message("Hold on, your ticket is being created! ✨", ephemeral=True)
+            return
+        self._creating_tickets.add(interaction.user.id)
+
         guild = interaction.guild
         
         # Safely parse IDs from env
@@ -77,6 +85,7 @@ class TicketView(discord.ui.View):
                 answers.append(msg.content)
         except asyncio.TimeoutError:
             await ticket_channel.send("Verification timed out. Please open a new ticket or ping a staff member.")
+            self._creating_tickets.discard(interaction.user.id)
             return
             
         summary_embed = discord.Embed(title="Verification Answers", color=discord.Color.dark_grey())
@@ -109,6 +118,7 @@ class TicketView(discord.ui.View):
             embed=summary_embed,
             view=TicketSummaryView()
         )
+        self._creating_tickets.discard(interaction.user.id)
 
 class TicketControlView(discord.ui.View):
     def __init__(self):
