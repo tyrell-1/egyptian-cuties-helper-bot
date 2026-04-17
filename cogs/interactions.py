@@ -1,38 +1,13 @@
+import os
+import random
+import glob
+
 import discord
 from discord.ext import commands
 from discord import app_commands
-import random
 
-GIFS = {
-    "hug": [
-        "https://media1.tenor.com/m/SYsRdiK-T7gAAAAC/hug-anime.gif",
-        "https://media1.tenor.com/m/4A9BTa_QLVUAAAAC/hug.gif",
-        "https://media1.tenor.com/m/J7eGDvGeP9IAAAAC/enage-kiss-anime-hug.gif",
-        "https://media1.tenor.com/m/2HxamDEy7XAAAAAC/yukon-child-form-embracing-ulquiorra.gif",
-        "https://media1.tenor.com/m/TYvVBj3Fi5AAAAAC/hug.gif",
-    ],
-    "kiss": [
-        "https://media1.tenor.com/m/kmxEaVuW8AoAAAAC/kiss-gentle-kiss.gif",
-        "https://media1.tenor.com/m/BZyWzw2d5tAAAAAC/hyakkano-100-girlfriends.gif",
-        "https://media1.tenor.com/m/YhGc7aQAI4oAAAAC/megumi-kato-kiss.gif",
-        "https://media1.tenor.com/m/Z6_zOnLp8XUAAAAC/kiss.gif",
-        "https://media1.tenor.com/m/S97_H69fVpYAAAAC/kiss-anime.gif",
-    ],
-    "pat": [
-        "https://media1.tenor.com/m/CH6SUnuH17MAAAAC/lily-yami.gif",
-        "https://media1.tenor.com/m/6yN8UfEALy8AAAAC/lawrence-wolf-girl.gif",
-        "https://media1.tenor.com/m/rtHwrLRPlAkAAAAC/class-no-daikirai-na-joshi-to-kekkon-suru-koto-ni-natta-i'm-getting-married-to-a-girl-i-hate-in-my-class.gif",
-        "https://media1.tenor.com/m/6MT_YvX996EAAAAC/pat-pat-head-thats-okay.gif",
-        "https://media1.tenor.com/m/LLc0DzIEHEQAAAAC/fern-headpat-stark-fern-headpats-stark.gif",
-    ],
-    "slap": [
-        "https://media1.tenor.com/m/p_S3Zl0Fv7MAAAAC/girl-slap-anime.gif",
-        "https://media1.tenor.com/m/Sv8LQZAoQmgAAAAC/chainsaw-man-csm.gif",
-        "https://media1.tenor.com/m/f69NRm3vS_IAAAAC/no-angry-anime.gif",
-        "https://media1.tenor.com/m/X9ZkX_vI_mMAAAAC/anime-slap.gif",
-        "https://media1.tenor.com/m/7FOnIksI6YQAAAAC/chikku-neesan-girl.gif",
-    ],
-}
+# Base path for GIF assets
+GIFS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "gifs")
 
 MESSAGES = {
     "hug": {
@@ -97,6 +72,15 @@ TITLES = {
 }
 
 
+def get_random_gif(action: str) -> str:
+    """Get a random GIF file path for the given action."""
+    folder = os.path.join(GIFS_DIR, action)
+    gifs = glob.glob(os.path.join(folder, "*.gif"))
+    if not gifs:
+        return None
+    return random.choice(gifs)
+
+
 class Interactions(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -111,17 +95,24 @@ class Interactions(commands.Cog):
             target=target.mention,
         )
 
+        gif_path = get_random_gif(action)
+
         embed = discord.Embed(
             title=TITLES[action],
             description=text,
             color=COLORS[action],
         )
-        embed.set_image(url=random.choice(GIFS[action]))
+
+        file = None
+        if gif_path:
+            filename = f"{action}.gif"
+            file = discord.File(gif_path, filename=filename)
+            embed.set_image(url=f"attachment://{filename}")
 
         if not is_self:
             embed.set_footer(text=f"From {interaction.user.display_name} to {target.display_name}")
 
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(embed=embed, file=file)
 
     @app_commands.command(name="hug", description="Give someone a warm hug! 🫂")
     async def hug(self, interaction: discord.Interaction, user: discord.Member = None):
