@@ -24,7 +24,7 @@ class TicketView(discord.ui.View):
         # Check if user already has a ticket
         existing_channel = discord.utils.get(guild.text_channels, name=f"ticket-{interaction.user.name.lower()}")
         if existing_channel:
-            await interaction.response.send_message(f"You already have a ticket open at {existing_channel.mention}.", ephemeral=True)
+            await interaction.response.send_message(f"Hey bestie, you already have a ticket open! 💖 Check it out here: {existing_channel.mention}", ephemeral=True)
             return
             
         
@@ -46,18 +46,17 @@ class TicketView(discord.ui.View):
         )
         
         embed = discord.Embed(
-            title=f"🎫 {interaction.user.name}'s Ticket",
-            description=f"👋 Welcome {interaction.user.mention} — Let's Get You Verified اهلا بيك!\n\n"
-                        f"Thanks for joining! To get access to the server, please answer the questions that will appear below.\n"
-                        f"Staff will review your answers and get back to you shortly.\n\n"
-                        f"شكراً إنك انضميت لينا! عشان تقدر تدخل السيرفر، ياريت تجاوب على الأسئلة اللي هتظهر تحت.\n"
-                        f"الستاف (الإدارة) هيراجعوا إجاباتك وهيردوا عليك في أقرب وقت.",
+            title=f"🎫 {interaction.user.name}'s Verification Ticket",
+            description=f"👋 **Welcome to the family, {interaction.user.mention}! Let’s get you verified!** 🏳️‍⚧️🏳️‍🌈\n\n"
+                        f"Thanks for taking the time to join us! To keep this space safe and comfortable for everyone, please answer the questions below to fill out your form.\n\n"
+                        f"*Our admin team will review it and get back to you in a matter of minutes!* ✨\n\n"
+                        f"شكراً لإنضمامك لينا! عشان نحافظ على المكان ده آمن ومريح للكل، ياريت تجاوب على الأسئلة اللي تحت.",
             color=discord.Color.from_str("#f45142")
         )
         embed.set_author(name="Egyptian Cuties | Helper")
         
         await ticket_channel.send(content=f"{interaction.user.mention}", embed=embed, view=TicketControlView())
-        await interaction.response.send_message(f"Ticket created! Go to {ticket_channel.mention}", ephemeral=True)
+        await interaction.response.send_message(f"Your ticket is ready to go! ✨ Head over to {ticket_channel.mention} 💖", ephemeral=True)
 
         questions = [
             "**1. How old are you?**\n١. عندك كام سنة؟",
@@ -106,7 +105,7 @@ class TicketView(discord.ui.View):
         staff_mention = f"<@&{staff_role_id_str}>" if staff_role_id_str.isdigit() and guild.get_role(int(staff_role_id_str)) else "@here"
         
         await ticket_channel.send(
-            content=f"Thank you {interaction.user.mention}! {staff_mention} will review your application soon.",
+            content=f"Thanks for sharing, {interaction.user.mention}! 🌈 Our lovely staff ({staff_mention}) will review this ASAP. Sit tight and grab a snack! 🍪",
             embed=summary_embed,
             view=TicketSummaryView()
         )
@@ -169,7 +168,7 @@ class TicketSummaryView(discord.ui.View):
         if verified_role and unverified_role and user:
             await user.add_roles(verified_role)
             await user.remove_roles(unverified_role)
-            await interaction.response.send_message(f"✅ Successfully verified {user.mention}!", ephemeral=False)
+            await interaction.response.send_message(f"Yaaass! ✅ Welcome to the club, {user.mention}! You're officially verified. Have fun! 🥳🏳️‍🌈", ephemeral=False)
             
             button.disabled = True
             if interaction.message.embeds:
@@ -181,6 +180,40 @@ class TicketSummaryView(discord.ui.View):
         else:
             await interaction.response.send_message("Failed to verify user. Please check role configuration or member presence.", ephemeral=True)
             
+    @discord.ui.button(label="Deny Ticket", style=discord.ButtonStyle.danger, custom_id="deny_ticket", emoji="<:1337843149019680898:1494799772689633462>")
+    async def deny_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
+        staff_role_id_str = os.getenv("STAFF_ROLE_ID", "")
+        staff_role_id = int(staff_role_id_str) if staff_role_id_str.isdigit() else 0
+        has_permission = any(role.id == staff_role_id for role in interaction.user.roles) or interaction.user.guild_permissions.manage_roles
+        
+        if not has_permission:
+            await interaction.response.send_message("You do not have permission to deny users.", ephemeral=True)
+            return
+
+        overwrites = interaction.channel.overwrites
+        user = None
+        for target in overwrites:
+            if isinstance(target, discord.Member):
+                user = target
+                break
+
+        if user:
+            await interaction.response.send_message(f"We're sorry {user.mention}, but your verification has been denied at this time. If you feel this is a mistake, please reach out to admin. Ticket closing shortly. 🥀", ephemeral=False)
+            await interaction.channel.set_permissions(user, send_messages=False, read_messages=True, read_message_history=True)
+            for child in self.children:
+                child.disabled = True
+            await interaction.message.edit(view=self)
+            
+            # Send close embed
+            embed = discord.Embed(
+                title="Ticket Closed", 
+                description="This ticket has been closed by staff. It can now be safely deleted.", 
+                color=discord.Color.red()
+            )
+            await interaction.channel.send(embed=embed, view=TicketClosedView())
+        else:
+            await interaction.response.send_message("Could not find the user in this ticket.", ephemeral=True)
+
     @discord.ui.button(label="Close Ticket", style=discord.ButtonStyle.danger, custom_id="summary_close_ticket", emoji="<:1361100801585582120:1494454549669478530>")
     async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer()
@@ -229,11 +262,11 @@ class Verification(commands.Cog):
     @app_commands.checks.has_permissions(administrator=True)
     async def setup_verification(self, interaction: discord.Interaction):
         embed = discord.Embed(
-            title="🔐 Server Verification",
-            description="<@&" + os.getenv("UNVERIFIED_ROLE_ID", "0") + "> | **To gain access to the server, you'll need to go through a quick verification process.**\n\n"
-                        "Click the button below to open a ticket and answer a few short questions.\n"
-                        "Staff will review your answers and grant you access.\n\n"
-                        "افتح تيكت عشان تشوف التشانلز.\n\n",
+            title="🔐 Welcome to Egyptian Cuties! ✨",
+            description=f"<@&{os.getenv('UNVERIFIED_ROLE_ID', '0')}> | **Welcome to your safe space! We're so happy you're here.** 🌈\n\n"
+                        "To gain access to the rest of the server and meet the cuties, you'll just need to go through a quick and easy verification process.\n\n"
+                        "Click the button below to answer a few short questions. Our lovely staff will review them and let you in ASAP! 💖\n\n"
+                        "أهلاً بيك في مساحتك الآمنة! عشان تقدر تشوف باقي السيرفر وتتعرف علينا، ياريت تفتح تيكت وتجاوب على كام سؤال بسيط.",
             color=discord.Color.from_str("#f45142")
         )
         embed.set_author(name="Egyptian Cuties | Helper")
@@ -262,7 +295,7 @@ class Verification(commands.Cog):
         if verified_role and unverified_role:
             await member.add_roles(verified_role)
             await member.remove_roles(unverified_role)
-            await interaction.response.send_message(f"Successfully verified {member.mention}!", ephemeral=False)
+            await interaction.response.send_message(f"Yaaass! ✅ Welcome to the club, {member.mention}! You're officially verified. Have fun! 🥳🏳️‍🌈", ephemeral=False)
         else:
             await interaction.response.send_message("Roles are not set up correctly in the config.", ephemeral=True)
 
