@@ -31,13 +31,13 @@ class TicketView(discord.ui.View):
         # Build Overwrites securely
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(read_messages=False),
-            interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True, attach_files=True),
-            guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True, manage_channels=True)
+            interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True, attach_files=True, read_message_history=True),
+            guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True, manage_channels=True, read_message_history=True)
         }
         
         staff_role = guild.get_role(staff_role_id)
         if staff_role:
-            overwrites[staff_role] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
+            overwrites[staff_role] = discord.PermissionOverwrite(read_messages=True, send_messages=True, read_message_history=True)
         
         ticket_channel = await guild.create_text_channel(
             name=f"ticket-{interaction.user.name.lower()}",
@@ -127,7 +127,7 @@ class TicketControlView(discord.ui.View):
                 break
                 
         if user:
-            await interaction.channel.set_permissions(user, send_messages=False, read_messages=True)
+            await interaction.channel.set_permissions(user, send_messages=False, read_messages=True, read_message_history=True)
             
         button.disabled = True
         await interaction.message.edit(view=self)
@@ -193,7 +193,7 @@ class TicketSummaryView(discord.ui.View):
                 break
                 
         if user:
-            await interaction.channel.set_permissions(user, send_messages=False, read_messages=True)
+            await interaction.channel.set_permissions(user, send_messages=False, read_messages=True, read_message_history=True)
             
         # Disable both buttons
         for child in self.children:
@@ -294,7 +294,7 @@ class Verification(commands.Cog):
             )
             await ticket_channel.send(embed=embed, view=TicketClosedView())
             # Close permissions for the member just in case they return before the ticket is deleted
-            await ticket_channel.set_permissions(member, send_messages=False, read_messages=True)
+            await ticket_channel.set_permissions(member, send_messages=False, read_messages=True, read_message_history=True)
 
 async def setup(bot):
     await bot.add_cog(Verification(bot))
