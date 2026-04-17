@@ -145,6 +145,14 @@ class TicketSummaryView(discord.ui.View):
         
     @discord.ui.button(label="Quick Verify", style=discord.ButtonStyle.success, custom_id="quick_verify", emoji="<:1345884737377665064:1494454247348113459>")
     async def quick_verify(self, interaction: discord.Interaction, button: discord.ui.Button):
+        staff_role_id_str = os.getenv("STAFF_ROLE_ID", "")
+        staff_role_id = int(staff_role_id_str) if staff_role_id_str.isdigit() else 0
+        has_permission = any(role.id == staff_role_id for role in interaction.user.roles) or interaction.user.guild_permissions.manage_roles
+        
+        if not has_permission:
+            await interaction.response.send_message("You do not have permission to verify users.", ephemeral=True)
+            return
+
         verified_role_id_str = os.getenv("VERIFIED_ROLE_ID", "")
         verified_role = interaction.guild.get_role(int(verified_role_id_str)) if verified_role_id_str.isdigit() else None
         
@@ -236,8 +244,15 @@ class Verification(commands.Cog):
         await interaction.response.send_message("Verification panel setup complete.", ephemeral=True)
         
     @app_commands.command(name="verify", description="Verify a user and grant them the verified role")
-    @app_commands.checks.has_permissions(manage_roles=True)
     async def verify_user(self, interaction: discord.Interaction, member: discord.Member):
+        staff_role_id_str = os.getenv("STAFF_ROLE_ID", "")
+        staff_role_id = int(staff_role_id_str) if staff_role_id_str.isdigit() else 0
+        has_permission = any(role.id == staff_role_id for role in interaction.user.roles) or interaction.user.guild_permissions.manage_roles
+        
+        if not has_permission:
+            await interaction.response.send_message("You do not have permission to verify users.", ephemeral=True)
+            return
+
         verified_role_id_str = os.getenv("VERIFIED_ROLE_ID", "")
         verified_role = interaction.guild.get_role(int(verified_role_id_str)) if verified_role_id_str.isdigit() else None
         
