@@ -25,22 +25,28 @@ class Fun(commands.Cog):
         import random
         user = user or interaction.user
         percentage = random.randint(0, 100)
+        color = discord.Color.random()
         
         if percentage <= 20:
             remark = "Straight as a ruler! 📏 (يا شارع)"
+            color = discord.Color.green()
         elif percentage <= 40:
             remark = "A little bit fruity... 🍓 (يامي)"
+            color = discord.Color.yellow()
         elif percentage <= 60:
             remark = "Halfway out of the closet! 🚪"
+            color = discord.Color.gold()
         elif percentage <= 80:
             remark = "Pretty gay, we love to see it! 💅"
+            color = discord.Color.orange()
         else:
             remark = "Maximum gayness achieved! 🌈✨ (شواذ بلدنا)"
+            color = discord.Color.red()
 
         embed = discord.Embed(
             title="Gaydar Result 🏳️‍🌈",
             description=f"## {user.mention} is **{percentage}%** gay!\n\n-# *{remark}*",
-            color=discord.Color.random()
+            color=color
         )
         embed.set_thumbnail(url=user.display_avatar.url)
         
